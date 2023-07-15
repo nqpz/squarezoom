@@ -1,0 +1,7 @@
+/lib
+/*.c
+/*.o
+/*.h
+/squarezoom_wrapper.fut
+/squarezoom_wrapper.json
+/squarezoom
