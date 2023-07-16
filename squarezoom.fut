@@ -29,7 +29,7 @@ def split4_value ((v, rng): p): [4]p =
 
 def expand [h][w] (blocks: [h][w]p): [h * 2][w * 2]p =
   let indices = flatten_3d (tabulate_2d h w (curry split4_index))
-  let values = flatten_3d (map (map (\p -> split4_value p)) blocks)
+  let values = flatten_3d (map (map split4_value) blocks)
   let dest = replicate (h * 2) (replicate (w * 2) (0, rnge.rng_from_seed [0]))
   in scatter_2d dest indices values
 
