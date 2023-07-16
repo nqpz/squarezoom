@@ -10,8 +10,6 @@ module dist = uniform_real_distribution f32 rnge
 type c = (i64, i64)
 type p = (f32, rng)
 
-def max: f32 = 2 * f32.pi
-
 def split4_index ((y, x): c): [4]c =
   let (y', x') = (y * 2, x * 2)
   in [(y', x'), (y', x' + 1), (y' + 1, x'), (y' + 1, x' + 1)]
@@ -50,7 +48,7 @@ module lys: lys with text_content = text_content = {
     hsv_to_rgb (360 * v, 1, 1)
 
   local def render_pixel_oklab (v: f32): argb.colour =
-    let c = oklab_to_linear_srgb (from_LCh {L=1, C=1, h=max * v})
+    let c = oklab_to_linear_srgb (from_LCh {L=1, C=1, h=2 * f32.pi * v})
     in argb.from_rgba c.r c.g c.b 1
 
   local def render_pixel_grayscale (v: f32): argb.colour =
