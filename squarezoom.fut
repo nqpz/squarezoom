@@ -9,37 +9,23 @@ type rng = rnge.rng
 module dist = uniform_real_distribution f32 rnge
 
 type c = (i64, i64)
-type p = (f32, rng, f32)
+type p = (f32, rng)
 
 def split4_index ((y, x): c): [4]c =
   let (y', x') = (y * 2, x * 2)
   in [(y', x'), (y', x' + 1), (y' + 1, x'), (y' + 1, x' + 1)]
 
-def split4_value ((v, rng, t): p): [4]p =
-  let (rng, t) = dist.rand (t * 0.9, t / 0.9) rng
-  let t' = f32.abs (f32.sin t)
-
+def split4_value ((v, rng): p): [4]p =
   let (rng, v0) = dist.rand (0, 1) rng
   let (rng, v1) = dist.rand (0, 1) rng
   let (rng, v2) = dist.rand (0, 1) rng
   let (rng, v3) = dist.rand (0, 1) rng
   let vs = [v0, v1, v2, v3]
-  let vs = map (+ t') vs
   let v_avg = reduce_comm (+) 0 vs / 4
   let v_factor = v / v_avg
   let vs = map (* v_factor) vs
-
-  let (rng, t0) = dist.rand (0, 1) rng
-  let (rng, t1) = dist.rand (0, 1) rng
-  let (rng, t2) = dist.rand (0, 1) rng
-  let (rng, t3) = dist.rand (0, 1) rng
-  let ts = [t0, t1, t2, t3]
-  let t_avg = reduce_comm (+) 0 ts / 4
-  let t_factor = (0.9 * t) / t_avg
-  let ts = map (* t_factor) ts
-
   let rngs = rnge.split_rng 4 rng
-  in zip3 vs rngs ts
+  in zip vs rngs
 
 def spread_2d 't [l] (k: i64) (n: i64) (x: t) (is: [l](i64, i64)) (vs: [l]t): *[k][n]t =
   scatter_2d (replicate k (replicate n x)) is vs
@@ -47,7 +33,7 @@ def spread_2d 't [l] (k: i64) (n: i64) (x: t) (is: [l](i64, i64)) (vs: [l]t): *[
 def expand [h][w] (blocks: [h][w]p): [h * 2][w * 2]p =
   let indices = flatten_3d (tabulate_2d h w (curry split4_index))
   let values = flatten_3d (map (map split4_value) blocks)
-  in spread_2d (h * 2) (w * 2) (0, rnge.rng_from_seed [0], 0) indices values
+  in spread_2d (h * 2) (w * 2) (0, rnge.rng_from_seed [0]) indices values
 
 def expand_to (size: i32) (init: p): [][]p =
   loop blocks = [[init]]
@@ -117,7 +103,7 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let blocks = expand_to (i32.min s.height s.width) (1, s.base.rng, s.base.time)
+    let blocks = expand_to (i32.min s.height s.width) (1, s.base.rng)
     let render_with_approach render_pixel = map (map (render_pixel <-< (.0))) blocks
     in match s.base.approach
        case #hsv -> render_with_approach render_pixel_hsv
