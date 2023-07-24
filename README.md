@@ -17,9 +17,12 @@ two) to build and run in a window.
 
 ## Controls
 
+  - Mouse wheel scroll: Zoom in/out.
+  - Right click: Automatic zoom.
+  - Right click and mouse wheel scroll: Adjust automatic zoom speed.
   - `ESC`: Exit the program.
   - `F1`: Toggle the text in the upper-left corner.
-  - `r`: Generate a new world.
   - `h`: View in the HSV color space (default).
   - `o`: View in the Oklab color space.
   - `g`: View as grayscale.
+  - `r`: Generate a new world.

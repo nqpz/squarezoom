@@ -1,5 +1,6 @@
 import "lib/github.com/diku-dk/lys/lys"
 import "lib/github.com/diku-dk/cpprandom/random"
+import "zoomable"
 import "oklab"
 import "hsv"
 
@@ -40,23 +41,36 @@ def split4_value ((v, rng, t): p): [4]p =
   let rngs = rnge.split_rng 4 rng
   in zip3 vs rngs ts
 
+def spread_2d 't [l] (k: i64) (n: i64) (x: t) (is: [l](i64, i64)) (vs: [l]t): *[k][n]t =
+  scatter_2d (replicate k (replicate n x)) is vs
+
 def expand [h][w] (blocks: [h][w]p): [h * 2][w * 2]p =
   let indices = flatten_3d (tabulate_2d h w (curry split4_index))
   let values = flatten_3d (map (map split4_value) blocks)
-  let dest = replicate (h * 2) (replicate (w * 2) (0, rnge.rng_from_seed [0], 0))
-  in scatter_2d dest indices values
+  -- let dest = replicate (h * 2) (replicate (w * 2) (0, rnge.rng_from_seed [0], 0))
+  -- in scatter_2d dest indices values
+  in spread_2d (h * 2) (w * 2) (0, rnge.rng_from_seed [0], 0) indices values
 
-def expand_to (size: i64) (init: p): [][]p =
+def expand_to (size: i32) (init: p): [][]p =
   loop blocks = [[init]]
-  for _i < t32 (f32.log2 (f32.i64 size))
+  for _i < t32 (f32.log2 (r32 size))
   do expand blocks
 
-type text_content = (i32, i32)
-module lys: lys with text_content = text_content = {
-  type approach = #hsv | #oklab | #grayscale
+type approach = #hsv | #oklab | #grayscale
 
-  type~ state = {time: f32, rng: rng, h: i64, w: i64,
-                 approach: approach}
+module base = {
+  type~ state = {
+      time: f32,
+      rng: rng,
+      approach: approach
+    }
+}
+
+module zoomable = mk_zoomable base
+
+type text_content = (i32, i32, f32, f32, f32, i32)
+module lys: lys with text_content = text_content = {
+  type~ state = zoomable.state
 
   local def render_pixel_hsv (v: f32): argb.colour =
     hsv_to_rgb (360 * v, 1, 1)
@@ -70,60 +84,66 @@ module lys: lys with text_content = text_content = {
 
   local def new_rng (s: state): state =
     -- Hack: Spice up the rng with a poor source.
-    let (_, seed) = rnge.rand s.rng
-    let rng = rnge.rng_from_seed [t32 (3007 * s.time) ^ i32.u64 seed]
-    in s with rng = rng
+    let (_, seed) = rnge.rand s.base.rng
+    let rng = rnge.rng_from_seed [t32 (3007 * s.base.time) ^ i32.u64 seed]
+    in s with base.rng = rng
 
   local def step (td: f32) (s: state): state =
-    s with time = s.time + td
+    s with base.time = s.base.time + td
 
   local def keydown (key: i32) (s: state): state =
     if key == SDLK_r
     then new_rng s
     else if key == SDLK_h
-    then s with approach = #hsv
+    then s with base.approach = #hsv
     else if key == SDLK_o
-    then s with approach = #oklab
+    then s with base.approach = #oklab
     else if key == SDLK_g
-    then s with approach = #grayscale
+    then s with base.approach = #grayscale
     else s
 
   def grab_mouse = false
 
   def init (seed: u32) (h: i64) (w: i64): state =
     let rng = rnge.rng_from_seed [i32.u32 seed]
-    let approach = #hsv
-    in {time=0, rng, approach, h, w}
+    in zoomable.init h w {time=0, rng, approach=#hsv}
 
   def resize (h: i64) (w: i64) (s: state): state =
-    s with h = h with w = w
+    zoomable.resize h w s
+    -- s with base.height = i32.i64 h
+    --   with base.width = i32.i64 w
 
   def event (e: event) (s: state): state =
-    match e
-    case #step td -> step td s
-    case #keydown {key} -> keydown key s
-    case _ -> s
+    let s = zoomable.event e s
+    in match e
+       case #step td -> step td s
+       case #keydown {key} -> keydown key s
+       case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let blocks = expand_to (i64.min s.h s.w) (1, s.rng, s.time)
+    let blocks = expand_to (i32.min s.height s.width) (1, s.base.rng, s.base.time)
     let render_with_approach render_pixel = map (map (render_pixel <-< (.0))) blocks
-    in match s.approach
+    in match s.base.approach
        case #hsv -> render_with_approach render_pixel_hsv
        case #oklab -> render_with_approach render_pixel_oklab
        case #grayscale -> render_with_approach render_pixel_grayscale
 
   type text_content = text_content
 
-  def text_format () = "FPS: %d\nView: %[hsv|oklab|grayscale]"
+  def text_format () =
+    "FPS: %d\nView: %[hsv|oklab|grayscale]\n"
+    ++ zoomable.text_format ()
 
   def text_content (render_duration: f32) (s: state): text_content =
-    (t32 render_duration, match s.approach
-                          case #hsv -> 0
-                          case #oklab -> 1
-                          case #grayscale -> 2)
+    let approach = match s.base.approach
+                   case #hsv -> 0
+                   case #oklab -> 1
+                   case #grayscale -> 2
+    let z = zoomable.text_content s
+    in (t32 render_duration, approach, z.0, z.1, z.2, z.3)
 
   def text_colour (s: state) =
-    match s.approach
+    match s.base.approach
     case #hsv -> argb.black
     case #oklab -> argb.black
     case #grayscale -> argb.green
