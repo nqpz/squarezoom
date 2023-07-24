@@ -34,19 +34,17 @@ def expand [h][w] (blocks: [h][w]p): [h * 2][w * 2]p =
   let values = flatten_3d (map (map split4_value) blocks)
   in spread_2d (h * 2) (w * 2) (0, rnge.rng_from_seed [0]) indices values
 
-def expand_to (size: i32) (init: p): [][]p =
+def expand_to (size: i64) (init: p): [][]p =
   loop blocks = [[init]]
-  for _i < t32 (f32.log2 (r32 size))
+  for _i < t32 (f32.log2 (f32.i64 size)) + 1
   do expand blocks
 
 type approach = #hsv | #oklab | #grayscale
 
 module base = {
-  type~ state = {
-      time: f32,
-      rng: rng,
-      approach: approach
-    }
+  type~ state = {time: f32,
+                 rng: rng,
+                 approach: approach}
 }
 
 module zoomable = mk_zoomable base
@@ -102,7 +100,7 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let values = expand_to (i32.min s.height s.width) (1, s.base.rng)
+    let values = expand_to (i64.min s.height s.width) (1, s.base.rng)
                  |> map (map (.0))
                  |> zoomable.to_screen_coordinates s
     let render_with_approach render_pixel = map (map render_pixel) values

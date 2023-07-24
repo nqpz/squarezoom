@@ -14,41 +14,35 @@ module type base = {
 }
 
 module mk_zoomable (base: base) = {
-  type viewport = {
-      zoom: f32,
-      center: vec2_f32.vector
-  }
+  type viewport = {zoom: f32,
+                   center: vec2_f32.vector}
 
-  type auto_zoom = {
-      enabled: bool,
-      factor: f32
-  }
+  type auto_zoom = {enabled: bool,
+                    factor: f32}
 
-  type~ state = {
-      base: base.state,
-      width: i32,
-      height: i32,
-      viewport: viewport,
-      auto_zoom: auto_zoom,
-      mouse: {y: i32, x: i32}
-  }
+  type~ state = {base: base.state,
+                 width: i64,
+                 height: i64,
+                 viewport: viewport,
+                 auto_zoom: auto_zoom,
+                 mouse: {y: i32, x: i32}}
 
   def init (h: i64) (w: i64) (base: base.state): state =
     {base,
-     height=i32.i64 h,
-     width=i32.i64 w,
+     height=h,
+     width=w,
      viewport={center={x=0, y=0}, zoom=1},
      auto_zoom={enabled=false, factor=1.01},
      mouse={x=0, y=0}}
 
   def resize (h: i64) (w: i64) (s: state): state =
-    s with height = i32.i64 h
-      with width = i32.i64 w
+    s with height = h
+      with width = w
 
-  def to_screen_coordinates [h] [w] (s: state) (values: [h][w]f32): [h][w]f32 =
-    let xy_factor = r32 (i32.min s.height s.width)
-    let offset = {y=r32 (i32.max 0 (s.width - s.height)) / xy_factor,
-                  x=r32 (i32.max 0 (s.height - s.width)) / xy_factor}
+  def to_screen_coordinates [h] [w] (s: state) (values: [h][w]f32): [s.height][s.width]f32 =
+    let xy_factor = f32.i64 (i64.min s.height s.width)
+    let offset = {y=f32.i64 (i64.max 0 (s.width - s.height)) / xy_factor,
+                  x=f32.i64 (i64.max 0 (s.height - s.width)) / xy_factor}
     let offset = vec2_f32.(scale 0.5 offset + dup 0.5)
 
     let viewport_center_scaled = vec2_f32.scale s.viewport.zoom s.viewport.center
@@ -57,7 +51,7 @@ module mk_zoomable (base: base) = {
     let to_screen_coordinate {y: i64, x: i64}: vec2_f32.vector =
       let p = {y=f32.i64 y, x=f32.i64 x}
               |> vec2_f32.scale (1 / xy_factor)
-              |> \p -> vec2_f32.(p - dup 0.5)
+              |> \p -> vec2_f32.(p - dup f32.(i64 h / i64 s.height / 2))
               |> vec2_f32.scale s.viewport.zoom
       in vec2_f32.(scale xy_factor p + offset_viewport_scaled)
 
@@ -73,8 +67,8 @@ module mk_zoomable (base: base) = {
       if v0 < 0 then v1
       else if v1 < 0 then v0
       else (v0 + v1) / 2
-    in reduce_by_index_and_spread_2d h w merge (-1) indices' values'
-    -- in spread_2d h w 0 indices' values'
+    in reduce_by_index_and_spread_2d s.height s.width merge (-1) indices' values'
+    -- in spread_2d s.height s.width 0 indices' values'
 
   def text_content (s: state) = (s.viewport.center.x,
                                  s.viewport.center.y,
@@ -86,10 +80,10 @@ module mk_zoomable (base: base) = {
     ++ "Auto mode: %[disabled|enabled]\n"
 
   def zoom_at_mouse (zoom_factor: f32) (s: state): state =
-    let xy_factor = r32 (i32.min s.height s.width) * s.viewport.zoom
-    let xb = r32 (s.mouse.x - s.width / 2)
+    let xy_factor = f32.i64 (i64.min s.height s.width) * s.viewport.zoom
+    let xb = r32 (s.mouse.x - i32.i64 s.width / 2)
     let xd = xb / xy_factor - xb / (xy_factor * zoom_factor)
-    let yb = r32 (s.mouse.y - s.height / 2)
+    let yb = r32 (s.mouse.y - i32.i64 s.height / 2)
     let yd = yb / xy_factor - yb / (xy_factor * zoom_factor)
     in s with viewport.zoom = s.viewport.zoom * zoom_factor
          with viewport.center.x = s.viewport.center.x + xd
@@ -106,7 +100,7 @@ module mk_zoomable (base: base) = {
       let y_diff = s.mouse.y - y
       let s = s with mouse = {x, y}
 
-      let xy_factor = r32 (i32.min s.height s.width) * s.viewport.zoom
+      let xy_factor = f32.i64 (i64.min s.height s.width) * s.viewport.zoom
 
       let s = if buttons & 1 == 1 || buttons & 4 == 4
               then s with viewport.center.x = s.viewport.center.x + r32 x_diff / xy_factor
