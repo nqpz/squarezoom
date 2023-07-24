@@ -45,35 +45,14 @@ module mk_zoomable (base: base) = {
 
   def to_screen_coordinate (s: state) {x: i32, y: i32}: vec2_f32.vector =
     let xy_factor = r32 (i32.min s.height s.width)
-    -- let x_offset_base = r32 (i32.max 0 (width s - height s)) / xy_factor
-    -- let y_offset_base = r32 (i32.max 0 (height s - width s)) / xy_factor
-    -- let x_offset = x_offset_base / 2
-    -- let y_offset = y_offset_base / 2
-
     let offset = {y=r32 (i32.max 0 (s.width - s.height)) / xy_factor,
                   x=r32 (i32.max 0 (s.height - s.width)) / xy_factor}
     let offset = vec2_f32.(scale 0.5 offset + dup 0.5)
 
     let viewport_center_scaled = vec2_f32.scale s.viewport.zoom s.viewport.center
-
     let offset_viewport_scaled = vec2_f32.(scale xy_factor (offset - viewport_center_scaled))
 
-    -- let x = xy_factor * ((r32 x + 0.5 + x_offset) - s.viewport.center.x * s.viewport.zoom)
-    -- let y = xy_factor * ((r32 y + 0.5 + y_offset) - s.viewport.center.y * s.viewport.zoom)
-
-    -- let x = xy_factor * ((r32 x + offset.x) - s.viewport.center.x * s.viewport.zoom)
-    -- let y = xy_factor * ((r32 y + offset.y) - s.viewport.center.y * s.viewport.zoom)
-
-    -- let p = {x=r32 x, y=r32 y}
-
-    -- let p = vec2_f32.(scale xy_factor ({x=r32 x, y=r32 y} + offset - viewport_center_scaled))
-
     in vec2_f32.(scale xy_factor {x=r32 x, y=r32 y} + offset_viewport_scaled)
-
-    -- let p = vec2_f32.(scale xy_factor {x=r32 x, y=r32 y} + offset_viewport_scaled)
-
-    -- in {x, y}
-    -- in p
 
   def text_content (s: state) = (s.viewport.center.x,
                                  s.viewport.center.y,

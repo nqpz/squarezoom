@@ -47,8 +47,6 @@ def spread_2d 't [l] (k: i64) (n: i64) (x: t) (is: [l](i64, i64)) (vs: [l]t): *[
 def expand [h][w] (blocks: [h][w]p): [h * 2][w * 2]p =
   let indices = flatten_3d (tabulate_2d h w (curry split4_index))
   let values = flatten_3d (map (map split4_value) blocks)
-  -- let dest = replicate (h * 2) (replicate (w * 2) (0, rnge.rng_from_seed [0], 0))
-  -- in scatter_2d dest indices values
   in spread_2d (h * 2) (w * 2) (0, rnge.rng_from_seed [0], 0) indices values
 
 def expand_to (size: i32) (init: p): [][]p =
@@ -110,8 +108,6 @@ module lys: lys with text_content = text_content = {
 
   def resize (h: i64) (w: i64) (s: state): state =
     zoomable.resize h w s
-    -- s with base.height = i32.i64 h
-    --   with base.width = i32.i64 w
 
   def event (e: event) (s: state): state =
     let s = zoomable.event e s
