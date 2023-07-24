@@ -1,6 +1,8 @@
 import "lib/github.com/diku-dk/lys/lys"
 import "lib/github.com/athas/vector/vspace"
 
+import "general"
+
 module vec2_f32 = {
   open mk_vspace_2d f32
 
@@ -28,7 +30,7 @@ module mk_zoomable (base: base) = {
       height: i32,
       viewport: viewport,
       auto_zoom: auto_zoom,
-      mouse: {x: i32, y: i32}
+      mouse: {y: i32, x: i32}
   }
 
   def init (h: i64) (w: i64) (base: base.state): state =
@@ -43,7 +45,7 @@ module mk_zoomable (base: base) = {
     s with height = i32.i64 h
       with width = i32.i64 w
 
-  def to_screen_coordinate (s: state) {x: i32, y: i32}: vec2_f32.vector =
+  def to_screen_coordinates [h] [w] (s: state) (values: [h][w]f32): [h][w]f32 =
     let xy_factor = r32 (i32.min s.height s.width)
     let offset = {y=r32 (i32.max 0 (s.width - s.height)) / xy_factor,
                   x=r32 (i32.max 0 (s.height - s.width)) / xy_factor}
@@ -52,7 +54,17 @@ module mk_zoomable (base: base) = {
     let viewport_center_scaled = vec2_f32.scale s.viewport.zoom s.viewport.center
     let offset_viewport_scaled = vec2_f32.(scale xy_factor (offset - viewport_center_scaled))
 
-    in vec2_f32.(scale xy_factor {x=r32 x, y=r32 y} + offset_viewport_scaled)
+    let to_screen_coordinate {y: i64, x: i64}: vec2_f32.vector =
+      let p = {y=(f32.i64 y / xy_factor - 0.5) * s.viewport.zoom,
+               x=(f32.i64 x / xy_factor - 0.5) * s.viewport.zoom}
+      in vec2_f32.(scale xy_factor p + offset_viewport_scaled)
+
+    let make_index (y: i64) (x: i64): (i64, i64) =
+      let {y, x} = to_screen_coordinate {y, x}
+      in (i64.f32 y, i64.f32 x)
+
+    let indices = tabulate_2d h w make_index
+    in spread_2d h w 0 (flatten indices) (flatten values)
 
   def text_content (s: state) = (s.viewport.center.x,
                                  s.viewport.center.y,
@@ -60,7 +72,7 @@ module mk_zoomable (base: base) = {
                                  i32.bool s.auto_zoom.enabled)
 
   def text_format () =
-    "Viewport: center (%.03le, %.03le); zoom %.03le\n"
+    "Viewport: center (x=%.03le, y=%.03le); zoom %.03le\n"
     ++ "Auto mode: %[disabled|enabled]\n"
 
   def zoom_at_mouse (zoom_factor: f32) (s: state): state =

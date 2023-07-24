@@ -18,6 +18,7 @@ two) to build and run in a window.
 ## Controls
 
   - Mouse wheel scroll: Zoom in/out.
+  - Left click and hold: Move around.
   - Right click: Automatic zoom.
   - Right click and mouse wheel scroll: Adjust automatic zoom speed.
   - `ESC`: Exit the program.

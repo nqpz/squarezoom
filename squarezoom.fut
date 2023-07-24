@@ -1,5 +1,7 @@
 import "lib/github.com/diku-dk/lys/lys"
 import "lib/github.com/diku-dk/cpprandom/random"
+
+import "general"
 import "zoomable"
 import "oklab"
 import "hsv"
@@ -26,9 +28,6 @@ def split4_value ((v, rng): p): [4]p =
   let vs = map (* v_factor) vs
   let rngs = rnge.split_rng 4 rng
   in zip vs rngs
-
-def spread_2d 't [l] (k: i64) (n: i64) (x: t) (is: [l](i64, i64)) (vs: [l]t): *[k][n]t =
-  scatter_2d (replicate k (replicate n x)) is vs
 
 def expand [h][w] (blocks: [h][w]p): [h * 2][w * 2]p =
   let indices = flatten_3d (tabulate_2d h w (curry split4_index))
@@ -103,8 +102,10 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let blocks = expand_to (i32.min s.height s.width) (1, s.base.rng)
-    let render_with_approach render_pixel = map (map (render_pixel <-< (.0))) blocks
+    let values = expand_to (i32.min s.height s.width) (1, s.base.rng)
+                 |> map (map (.0))
+                 |> zoomable.to_screen_coordinates s
+    let render_with_approach render_pixel = map (map render_pixel) values
     in match s.base.approach
        case #hsv -> render_with_approach render_pixel_hsv
        case #oklab -> render_with_approach render_pixel_oklab
