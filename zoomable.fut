@@ -66,7 +66,15 @@ module mk_zoomable (base: base) = {
       in (i64.f32 y, i64.f32 x)
 
     let indices = tabulate_2d h w make_index
-    in spread_2d h w 0 (flatten indices) (flatten values)
+    let indices' = flatten indices
+    let values' = flatten values
+
+    let merge (v0: f32) (v1: f32): f32 =
+      if v0 < 0 then v1
+      else if v1 < 0 then v0
+      else (v0 + v1) / 2
+    in reduce_by_index_and_spread_2d h w merge (-1) indices' values'
+    -- in spread_2d h w 0 indices' values'
 
   def text_content (s: state) = (s.viewport.center.x,
                                  s.viewport.center.y,
