@@ -41,6 +41,7 @@ module mk_zoomable (base: base) = {
 
   def to_screen_coordinates [hw] (s: state) (values: [hw][hw]f32): [s.height][s.width]f32 =
     let xy_factor = f32.i64 (i64.min s.height s.width)
+    let center_offset = vec2_f32.dup (f32.i64 hw / xy_factor / 2)
     let offset = {y=f32.i64 (i64.max 0 (s.width - s.height)) / xy_factor,
                   x=f32.i64 (i64.max 0 (s.height - s.width)) / xy_factor}
     let offset = vec2_f32.(scale 0.5 offset + dup 0.5)
@@ -51,7 +52,7 @@ module mk_zoomable (base: base) = {
     let to_screen_coordinate {y: i64, x: i64}: vec2_f32.vector =
       let p = {y=f32.i64 y, x=f32.i64 x}
               |> vec2_f32.scale (1 / xy_factor)
-              |> \p -> vec2_f32.(p - dup f32.(i64 hw / xy_factor / 2))
+              |> \p -> vec2_f32.(p - center_offset)
               |> vec2_f32.scale s.viewport.zoom
       in vec2_f32.(scale xy_factor p + offset_viewport_scaled)
 
