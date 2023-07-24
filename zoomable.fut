@@ -39,7 +39,7 @@ module mk_zoomable (base: base) = {
     s with height = h
       with width = w
 
-  def to_screen_coordinates [h] [w] (s: state) (values: [h][w]f32): [s.height][s.width]f32 =
+  def to_screen_coordinates [hw] (s: state) (values: [hw][hw]f32): [s.height][s.width]f32 =
     let xy_factor = f32.i64 (i64.min s.height s.width)
     let offset = {y=f32.i64 (i64.max 0 (s.width - s.height)) / xy_factor,
                   x=f32.i64 (i64.max 0 (s.height - s.width)) / xy_factor}
@@ -51,7 +51,7 @@ module mk_zoomable (base: base) = {
     let to_screen_coordinate {y: i64, x: i64}: vec2_f32.vector =
       let p = {y=f32.i64 y, x=f32.i64 x}
               |> vec2_f32.scale (1 / xy_factor)
-              |> \p -> vec2_f32.(p - dup f32.(i64 h / i64 s.height / 2))
+              |> \p -> vec2_f32.(p - dup f32.(i64 hw / xy_factor / 2))
               |> vec2_f32.scale s.viewport.zoom
       in vec2_f32.(scale xy_factor p + offset_viewport_scaled)
 
@@ -59,7 +59,7 @@ module mk_zoomable (base: base) = {
       let {y, x} = to_screen_coordinate {y, x}
       in (i64.f32 y, i64.f32 x)
 
-    let indices = tabulate_2d h w make_index
+    let indices = tabulate_2d hw hw make_index
     let indices' = flatten indices
     let values' = flatten values
 

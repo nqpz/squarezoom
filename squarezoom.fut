@@ -29,10 +29,11 @@ def split4_value ((v, rng): p): [4]p =
   let rngs = rnge.split_rng 4 rng
   in zip vs rngs
 
-def expand [h][w] (blocks: [h][w]p): [h * 2][w * 2]p =
-  let indices = flatten_3d (tabulate_2d h w (curry split4_index))
+def expand [hw] (blocks: [hw][hw]p): [hw * 2][hw * 2]p =
+  let indices = flatten_3d (tabulate_2d hw hw (curry split4_index))
   let values = flatten_3d (map (map split4_value) blocks)
-  in spread_2d (h * 2) (w * 2) (0, rnge.rng_from_seed [0]) indices values
+  let hw' = hw * 2
+  in spread_2d hw' hw' (0, rnge.rng_from_seed [0]) indices values
 
 def expand_to (size: i64) (init: p): [][]p =
   loop blocks = [[init]]
