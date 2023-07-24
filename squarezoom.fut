@@ -12,8 +12,8 @@ type c = (i64, i64)
 type p = (f32, rng)
 
 def split4_index ((y, x): c): [4]c =
-  let (y', x') = (y * 2, x * 2)
-  in [(y', x'), (y', x' + 1), (y' + 1, x'), (y' + 1, x' + 1)]
+  let (y, x) = (y * 2, x * 2)
+  in [(y, x), (y, x + 1), (y + 1, x), (y + 1, x + 1)]
 
 def split4_value ((v, rng): p): [4]p =
   let (rng, v0) = dist.rand (0, 1) rng
