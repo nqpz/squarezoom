@@ -30,13 +30,15 @@ def split4_value (((v, c), rng): p): [4]p =
   let cs = split4_index c
   in zip (zip vs cs) rngs
 
-def expand (blocks: []p): []p =
-  flatten (map split4_value blocks)
+def expand ((blocks, size): ([]p, i64)): ([]p, i64) =
+  (flatten (map split4_value blocks), size / 2)
 
 def expand_to (size: i64) (init: p): []p =
-  loop blocks = [init]
-  for _i < t32 (f32.log2 (f32.i64 size)) + 1
-  do expand blocks
+  let (r, _) =
+    loop blocks = ([init], size)
+    for _i < t32 (f32.log2 (f32.i64 size)) + 1
+    do expand blocks
+  in r
 
 type approach = #hsv | #oklab | #grayscale
 
@@ -102,7 +104,7 @@ module lys: lys with text_content = text_content = {
     let size = i64.min s.height s.width
     let values = expand_to size ((1, (0, 0)), s.base.rng)
                  |> map (.0)
-                 |> zoomable.to_screen_coordinates s (size * 2)
+                 |> zoomable.to_screen_coordinates s -- (size * 2)
     let render_with_approach render_pixel = map (map render_pixel) values
     in match s.base.approach
        case #hsv -> render_with_approach render_pixel_hsv
