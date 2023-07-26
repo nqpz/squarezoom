@@ -20,7 +20,8 @@ module mk_zoomable (base: base) = {
   type auto_zoom = {enabled: bool,
                     factor: f32}
 
-  type screen_calculations = {xy_factor_inv: f32,
+  type screen_calculations = {hw: i64,
+                              xy_factor_inv: f32,
                               center_offset: vec2_f32.vector,
                               zoom_factor: f32,
                               offset_viewport_scaled: vec2_f32.vector}
@@ -33,7 +34,9 @@ module mk_zoomable (base: base) = {
                  mouse: {y: i32, x: i32},
                  screen_calculations: screen_calculations}
 
-  local def make_screen_calculations (height: i64) (width: i64) (viewport: viewport) (hw: i64): screen_calculations =
+  local def make_screen_calculations (height: i64) (width: i64) (viewport: viewport): screen_calculations =
+    let hw = i64.min height width * 2
+
     let xy_factor = f32.i64 (i64.min height width)
     let xy_factor_inv = 1 / xy_factor
 
@@ -47,13 +50,11 @@ module mk_zoomable (base: base) = {
     let viewport_center_scaled = vec2_f32.scale viewport.zoom viewport.center
     let offset_viewport_scaled = vec2_f32.(scale xy_factor (offset - viewport_center_scaled))
 
-    in {xy_factor_inv,
+    in {hw,
+        xy_factor_inv,
         center_offset,
         zoom_factor,
         offset_viewport_scaled}
-
-  def make_hw (height: i64) (width: i64): i64 =
-    i64.min height width * 2
 
   def init (height: i64) (width: i64) (base: base.state): state =
     let viewport = {center={x=0, y=0}, zoom=1}
@@ -63,10 +64,10 @@ module mk_zoomable (base: base) = {
         viewport,
         auto_zoom={enabled=false, factor=1.01},
         mouse={x=0, y=0},
-        screen_calculations=make_screen_calculations height width viewport (make_hw height width)}
+        screen_calculations=make_screen_calculations height width viewport}
 
   local def update_screen_calculations (s: state): state =
-    s with screen_calculations = make_screen_calculations s.height s.width s.viewport (make_hw s.height s.width)
+    s with screen_calculations = make_screen_calculations s.height s.width s.viewport
 
   def resize (h: i64) (w: i64) (s: state): state =
     let s = s with height = h
@@ -79,17 +80,17 @@ module mk_zoomable (base: base) = {
   local def to_tuple ({y, x}: vec2_f32.vector): (i64, i64) =
     (i64.f32 y, i64.f32 x)
 
-  def to_screen_coordinate (s: state): (i64, i64) -> (i64, i64) =
+  def to_screen_coordinate (c: screen_calculations): (i64, i64) -> (i64, i64) =
     to_vector
-    >-> vec2_f32.scale s.screen_calculations.xy_factor_inv
-    >-> (vec2_f32.- s.screen_calculations.center_offset)
-    >-> vec2_f32.scale s.screen_calculations.zoom_factor
-    >-> (vec2_f32.+ s.screen_calculations.offset_viewport_scaled)
+    >-> vec2_f32.scale c.xy_factor_inv
+    >-> (vec2_f32.- c.center_offset)
+    >-> vec2_f32.scale c.zoom_factor
+    >-> (vec2_f32.+ c.offset_viewport_scaled)
     >-> to_tuple
 
   def to_screen_coordinates (s: state) (values: [](f32, (i64, i64))): [s.height][s.width]f32 =
     let values' = map (.0) values
-    let indices' = map (to_screen_coordinate s) (map (.1) values)
+    let indices' = map (to_screen_coordinate s.screen_calculations) (map (.1) values)
 
     let merge (v0: f32) (v1: f32): f32 =
       if v0 < 0 then v1

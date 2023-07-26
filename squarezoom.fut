@@ -13,6 +13,16 @@ module dist = uniform_real_distribution f32 rnge
 type c = (i64, i64)
 type p = ((f32, c), rng)
 
+type approach = #hsv | #oklab | #grayscale
+
+module base = {
+  type~ state = {time: f32,
+                 rng: rng,
+                 approach: approach}
+}
+
+module zoomable = mk_zoomable base
+
 def split4_index ((y, x): c): [4]c =
   let (y, x) = (y * 2, x * 2)
   in [(y, x), (y, x + 1), (y + 1, x), (y + 1, x + 1)]
@@ -30,25 +40,30 @@ def split4_value (((v, c), rng): p): [4]p =
   let cs = split4_index c
   in zip (zip vs cs) rngs
 
-def expand ((blocks, size): ([]p, i64)): ([]p, i64) =
-  (flatten (map split4_value blocks), size / 2)
+def expand_to (height: i64) (width: i64) (c: zoomable.screen_calculations) (init: p): []p =
+  let expand ((blocks, size): ([]p, i64)): ([]p, i64) =
+    let size' = size / 2
 
-def expand_to (hw: i64) (init: p): []p =
+    let rect_outside_window (y_ul, x_ul) (y_lr, x_lr) =
+      y_lr < 0 || y_ul >= height || x_lr < 0 || x_ul >= width
+
+    let in_bounds (((_, (y0, x0)), _): p): bool =
+      let (y0, x0) = (y0 * size', x0 * size')
+      let sc = zoomable.to_screen_coordinate c
+      in !rect_outside_window
+          (sc (y0, x0))
+          (sc (y0 + size', x0 + size'))
+
+    let new = map split4_value blocks
+              |> flatten
+              |> filter in_bounds
+    in (new, size')
+
   let (r, _) =
-    loop blocks = ([init], hw)
-    for _i < t32 (f32.log2 (f32.i64 hw))
+    loop blocks = ([init], c.hw)
+    for _i < t32 (f32.log2 (f32.i64 c.hw))
     do expand blocks
   in r
-
-type approach = #hsv | #oklab | #grayscale
-
-module base = {
-  type~ state = {time: f32,
-                 rng: rng,
-                 approach: approach}
-}
-
-module zoomable = mk_zoomable base
 
 type text_content = (i32, i32, f32, f32, f32, i32)
 module lys: lys with text_content = text_content = {
@@ -101,7 +116,7 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let values = expand_to (zoomable.make_hw s.height s.width) ((1, (0, 0)), s.base.rng)
+    let values = expand_to s.height s.width s.screen_calculations ((1, (0, 0)), s.base.rng)
                  |> map (.0)
                  |> zoomable.to_screen_coordinates s
     let render_with_approach render_pixel = map (map render_pixel) values
