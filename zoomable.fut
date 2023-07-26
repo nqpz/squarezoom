@@ -31,7 +31,7 @@ module mk_zoomable (base: base) = {
     {base,
      height=h,
      width=w,
-     viewport={center={x=0, y=0}, zoom=1},
+     viewport={center={x=0, y=0}, zoom=0.5},
      auto_zoom={enabled=false, factor=1.01},
      mouse={x=0, y=0}}
 
