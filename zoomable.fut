@@ -31,7 +31,7 @@ module mk_zoomable (base: base) = {
     {base,
      height=h,
      width=w,
-     viewport={center={x=0, y=0}, zoom=0.5},
+     viewport={center={x=0, y=0}, zoom=1},
      auto_zoom={enabled=false, factor=1.01},
      mouse={x=0, y=0}}
 
@@ -46,14 +46,16 @@ module mk_zoomable (base: base) = {
                   x=f32.i64 (i64.max 0 (s.height - s.width)) / xy_factor}
     let offset = vec2_f32.(scale 0.5 offset + dup 0.5)
 
-    let viewport_center_scaled = vec2_f32.scale s.viewport.zoom s.viewport.center
+    let zoom = s.viewport.zoom / 2
+
+    let viewport_center_scaled = vec2_f32.scale zoom s.viewport.center
     let offset_viewport_scaled = vec2_f32.(scale xy_factor (offset - viewport_center_scaled))
 
     let to_screen_coordinate {y: i64, x: i64}: vec2_f32.vector =
       let p = {y=f32.i64 y, x=f32.i64 x}
               |> vec2_f32.scale (1 / xy_factor)
               |> (vec2_f32.- center_offset)
-              |> vec2_f32.scale s.viewport.zoom
+              |> vec2_f32.scale zoom
       in vec2_f32.(scale xy_factor p + offset_viewport_scaled)
 
     let make_index ((y, x): (i64, i64)): (i64, i64) =
