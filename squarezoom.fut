@@ -33,10 +33,10 @@ def split4_value (((v, c), rng): p): [4]p =
 def expand ((blocks, size): ([]p, i64)): ([]p, i64) =
   (flatten (map split4_value blocks), size / 2)
 
-def expand_to (size: i64) (init: p): []p =
+def expand_to (hw: i64) (init: p): []p =
   let (r, _) =
-    loop blocks = ([init], size)
-    for _i < t32 (f32.log2 (f32.i64 size)) + 1
+    loop blocks = ([init], hw)
+    for _i < t32 (f32.log2 (f32.i64 hw))
     do expand blocks
   in r
 
@@ -101,8 +101,7 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let size = i64.min s.height s.width
-    let values = expand_to size ((1, (0, 0)), s.base.rng)
+    let values = expand_to (zoomable.make_hw s.height s.width) ((1, (0, 0)), s.base.rng)
                  |> map (.0)
                  |> zoomable.to_screen_coordinates s
     let render_with_approach render_pixel = map (map render_pixel) values
