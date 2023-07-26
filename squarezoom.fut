@@ -104,7 +104,7 @@ module lys: lys with text_content = text_content = {
     let size = i64.min s.height s.width
     let values = expand_to size ((1, (0, 0)), s.base.rng)
                  |> map (.0)
-                 |> zoomable.to_screen_coordinates s -- (size * 2)
+                 |> zoomable.to_screen_coordinates s
     let render_with_approach render_pixel = map (map render_pixel) values
     in match s.base.approach
        case #hsv -> render_with_approach render_pixel_hsv

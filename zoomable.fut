@@ -52,6 +52,9 @@ module mk_zoomable (base: base) = {
         zoom_factor,
         offset_viewport_scaled}
 
+  def make_hw (height: i64) (width: i64): i64 =
+    i64.min height width * 2
+
   def init (height: i64) (width: i64) (base: base.state): state =
     let viewport = {center={x=0, y=0}, zoom=1}
     in {base,
@@ -60,10 +63,10 @@ module mk_zoomable (base: base) = {
         viewport,
         auto_zoom={enabled=false, factor=1.01},
         mouse={x=0, y=0},
-        screen_calculations=make_screen_calculations height width viewport 2048}
+        screen_calculations=make_screen_calculations height width viewport (make_hw height width)}
 
   local def update_screen_calculations (s: state): state =
-    s with screen_calculations = make_screen_calculations s.height s.width s.viewport 2048
+    s with screen_calculations = make_screen_calculations s.height s.width s.viewport (make_hw s.height s.width)
 
   def resize (h: i64) (w: i64) (s: state): state =
     let s = s with height = h
