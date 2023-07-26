@@ -11,13 +11,13 @@ type rng = rnge.rng
 module dist = uniform_real_distribution f32 rnge
 
 type c = (i64, i64)
-type p = (f32, rng)
+type p = ((f32, c), rng)
 
 def split4_index ((y, x): c): [4]c =
   let (y, x) = (y * 2, x * 2)
   in [(y, x), (y, x + 1), (y + 1, x), (y + 1, x + 1)]
 
-def split4_value ((v, rng): p): [4]p =
+def split4_value (((v, c), rng): p): [4]p =
   let (rng, v0) = dist.rand (0, 1) rng
   let (rng, v1) = dist.rand (0, 1) rng
   let (rng, v2) = dist.rand (0, 1) rng
@@ -27,16 +27,14 @@ def split4_value ((v, rng): p): [4]p =
   let v_factor = v / v_avg
   let vs = map (* v_factor) vs
   let rngs = rnge.split_rng 4 rng
-  in zip vs rngs
+  let cs = split4_index c
+  in zip (zip vs cs) rngs
 
-def expand [hw] (blocks: [hw][hw]p): [hw * 2][hw * 2]p =
-  let indices = flatten_3d (tabulate_2d hw hw (curry split4_index))
-  let values = flatten_3d (map (map split4_value) blocks)
-  let hw' = hw * 2
-  in spread_2d hw' hw' (0, rnge.rng_from_seed [0]) indices values
+def expand (blocks: []p): []p =
+  flatten (map split4_value blocks)
 
-def expand_to (size: i64) (init: p): [][]p =
-  loop blocks = [[init]]
+def expand_to (size: i64) (init: p): []p =
+  loop blocks = [init]
   for _i < t32 (f32.log2 (f32.i64 size)) + 1
   do expand blocks
 
@@ -101,9 +99,9 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let values = expand_to (i64.min s.height s.width) (1, s.base.rng)
-                 |> map (map (.0))
-                 |> zoomable.to_screen_coordinates s
+    let values = expand_to (i64.min s.height s.width) ((1, (0, 0)), s.base.rng)
+                 |> map (.0)
+                 |> zoomable.to_screen_coordinates s 2048
     let render_with_approach render_pixel = map (map render_pixel) values
     in match s.base.approach
        case #hsv -> render_with_approach render_pixel_hsv

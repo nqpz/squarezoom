@@ -39,7 +39,7 @@ module mk_zoomable (base: base) = {
     s with height = h
       with width = w
 
-  def to_screen_coordinates [hw] (s: state) (values: [hw][hw]f32): [s.height][s.width]f32 =
+  def to_screen_coordinates (s: state) (hw: i64) (values: [](f32, (i64, i64))): [s.height][s.width]f32 =
     let xy_factor = f32.i64 (i64.min s.height s.width)
     let center_offset = vec2_f32.dup (f32.i64 hw / xy_factor / 2)
     let offset = {y=f32.i64 (i64.max 0 (s.width - s.height)) / xy_factor,
@@ -56,13 +56,12 @@ module mk_zoomable (base: base) = {
               |> vec2_f32.scale s.viewport.zoom
       in vec2_f32.(scale xy_factor p + offset_viewport_scaled)
 
-    let make_index (y: i64) (x: i64): (i64, i64) =
+    let make_index ((y, x): (i64, i64)): (i64, i64) =
       let {y, x} = to_screen_coordinate {y, x}
       in (i64.f32 y, i64.f32 x)
 
-    let indices = tabulate_2d hw hw make_index
-    let indices' = flatten indices
-    let values' = flatten values
+    let values' = map (.0) values
+    let indices' = map make_index (map (.1) values)
 
     let merge (v0: f32) (v1: f32): f32 =
       if v0 < 0 then v1
