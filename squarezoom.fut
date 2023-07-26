@@ -11,7 +11,7 @@ type rng = rnge.rng
 module dist = uniform_real_distribution f32 rnge
 
 type c = (i64, i64)
-type p = ((f32, c), rng)
+type p = ((f32, c), f32, rng)
 
 type approach = #hsv | #oklab | #grayscale
 
@@ -27,18 +27,21 @@ def split4_index ((y, x): c): [4]c =
   let (y, x) = (y * 2, x * 2)
   in [(y, x), (y, x + 1), (y + 1, x), (y + 1, x + 1)]
 
-def split4_value (((v, c), rng): p): [4]p =
+def split4_value (((v, c), t, rng): p): [4]p =
+  let t' = f32.abs (f32.sin t) * 0.1
   let (rng, v0) = dist.rand (0, 1) rng
   let (rng, v1) = dist.rand (0, 1) rng
   let (rng, v2) = dist.rand (0, 1) rng
   let (rng, v3) = dist.rand (0, 1) rng
   let vs = [v0, v1, v2, v3]
+  let vs = map (+ t') vs
   let v_avg = reduce_comm (+) 0 vs / 4
   let v_factor = v / v_avg
   let vs = map (* v_factor) vs
-  let rngs = rnge.split_rng 4 rng
   let cs = split4_index c
-  in zip (zip vs cs) rngs
+  let ts = replicate 4 (t * 0.9)
+  let rngs = rnge.split_rng 4 rng
+  in zip3 (zip vs cs) ts rngs
 
 def expand_to (height: i64) (width: i64) (c: zoomable.screen_calculations) (init: p): []p =
   let expand ((blocks, size): ([]p, i64)): ([]p, i64) =
@@ -47,7 +50,7 @@ def expand_to (height: i64) (width: i64) (c: zoomable.screen_calculations) (init
     let rect_outside_window (y_ul, x_ul) (y_lr, x_lr) =
       y_lr < 0 || y_ul >= height || x_lr < 0 || x_ul >= width
 
-    let in_bounds (((_, (y0, x0)), _): p): bool =
+    let in_bounds (((_, (y0, x0)), _, _): p): bool =
       let (y0, x0) = (y0 * size', x0 * size')
       let sc = zoomable.to_screen_coordinate c
       in !rect_outside_window
@@ -116,7 +119,7 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let values = expand_to s.height s.width s.screen_calculations ((1, (0, 0)), s.base.rng)
+    let values = expand_to s.height s.width s.screen_calculations ((1, (0, 0)), s.base.time, s.base.rng)
                  |> map (.0)
                  |> zoomable.to_screen_coordinates s
     let render_with_approach render_pixel = map (map render_pixel) values
