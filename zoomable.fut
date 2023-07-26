@@ -37,9 +37,11 @@ module mk_zoomable (base: base) = {
   local def make_screen_calculations (height: i64) (width: i64) (viewport: viewport): screen_calculations =
     let precision_scale = 2**i64.f32 (f32.ceil (f32.log2 viewport.zoom))
 
-    let precision = i64.min height width * precision_scale
+    let size = i64.min height width
 
-    let xy_factor = f32.i64 (i64.min height width)
+    let precision = size * precision_scale
+
+    let xy_factor = f32.i64 size
     let xy_factor_inv = 1 / xy_factor
 
     let center_offset = vec2_f32.dup (f32.i64 precision / xy_factor / 2)
