@@ -1,6 +1,6 @@
 # squarezoom
 
-A neat little expanding square world.
+Zoom in and out of a neat little random square world.
 
 ![Screenshot](screenshot.png)
 
