@@ -9,92 +9,53 @@ module vec2_f32 = {
   def dup (t: f32): vector = {x=t, y=t}
 }
 
-module type base = {
-  type~ state
+type viewport = {zoom: f32,
+                 center: vec2_f32.vector}
+
+module type zoomable_input = {
+  type state
+
+  type screen_calculations
+
+  val make_screen_calculations: i64 -> i64 -> viewport -> screen_calculations
+
+  val to_screen_coordinate: screen_calculations -> (i64, i64) -> (i64, i64)
 }
 
-module mk_zoomable (base: base) = {
-  type viewport = {zoom: f32,
-                   center: vec2_f32.vector}
-
+module mk_zoomable (zoomable_input: zoomable_input) = {
   type auto_zoom = {enabled: bool,
                     factor: f32}
 
-  type screen_calculations = {precision: i64,
-                              xy_factor_inv: f32,
-                              center_offset: vec2_f32.vector,
-                              zoom_factor: f32,
-                              offset_viewport_scaled: vec2_f32.vector}
+  type state = {base: zoomable_input.state,
+                width: i64,
+                height: i64,
+                viewport: viewport,
+                auto_zoom: auto_zoom,
+                mouse: {y: i32, x: i32},
+                screen_calculations: zoomable_input.screen_calculations}
 
-  type~ state = {base: base.state,
-                 width: i64,
-                 height: i64,
-                 viewport: viewport,
-                 auto_zoom: auto_zoom,
-                 mouse: {y: i32, x: i32},
-                 screen_calculations: screen_calculations}
-
-  local def make_screen_calculations (height: i64) (width: i64) (viewport: viewport): screen_calculations =
-    let precision_scale = 2**i64.max 0 (i64.f32 (f32.ceil (f32.log2 viewport.zoom)))
-
-    let size = i64.min height width
-
-    let precision = size * precision_scale
-
-    let xy_factor = f32.i64 size
-    let xy_factor_inv = 1 / xy_factor
-
-    let center_offset = vec2_f32.dup (f32.i64 precision / xy_factor / 2)
-
-    let zoom_factor = xy_factor * viewport.zoom / f32.i64 precision_scale
-
-    let offset = {y=f32.i64 (i64.max 0 (width - height)) / xy_factor,
-                  x=f32.i64 (i64.max 0 (height - width)) / xy_factor}
-    let offset = vec2_f32.(scale 0.5 offset + dup 0.5)
-    let viewport_center_scaled = vec2_f32.scale viewport.zoom viewport.center
-    let offset_viewport_scaled = vec2_f32.(scale xy_factor (offset - viewport_center_scaled))
-
-    in {precision,
-        xy_factor_inv,
-        center_offset,
-        zoom_factor,
-        offset_viewport_scaled}
-
-  def init (height: i64) (width: i64) (base: base.state): state =
+  def init (height: i64) (width: i64) (base: zoomable_input.state): state =
     let viewport = {center={x=0, y=0}, zoom=1}
+    let screen_calculations = zoomable_input.make_screen_calculations height width viewport
     in {base,
         height,
         width,
         viewport,
         auto_zoom={enabled=false, factor=1.01},
         mouse={x=0, y=0},
-        screen_calculations=make_screen_calculations height width viewport}
+        screen_calculations}
 
   local def update_screen_calculations (s: state): state =
-    s with screen_calculations = make_screen_calculations s.height s.width s.viewport
+    s with screen_calculations = zoomable_input.make_screen_calculations s.height s.width s.viewport
 
   def resize (h: i64) (w: i64) (s: state): state =
     let s = s with height = h
               with width = w
     in update_screen_calculations s
 
-  local def to_vector ((y, x): (i64, i64)): vec2_f32.vector =
-    {y=f32.i64 y, x=f32.i64 x}
-
-  local def to_tuple ({y, x}: vec2_f32.vector): (i64, i64) =
-    (i64.f32 y, i64.f32 x)
-
-  def to_screen_coordinate (c: screen_calculations): (i64, i64) -> (i64, i64) =
-    to_vector
-    >-> vec2_f32.scale c.xy_factor_inv
-    >-> (vec2_f32.- c.center_offset)
-    >-> vec2_f32.scale c.zoom_factor
-    >-> (vec2_f32.+ c.offset_viewport_scaled)
-    >-> to_tuple
-
   def to_screen_coordinates (s: state) (values: [](f32, (i64, i64))): [s.height][s.width]f32 =
     let values' = map (.0) values
-    let indices' = map (to_screen_coordinate s.screen_calculations) (map (.1) values)
+    let indices' = map (zoomable_input.to_screen_coordinate s.screen_calculations) (map (.1) values)
 
     let merge (v0: f32) (v1: f32): f32 =
       if v0 < 0 then v1
