@@ -12,7 +12,7 @@ libraries with associated header files.
 
 First run `futhark pkg sync` once.
 
-Then run `make && ./squarezoom -R -w 1024 -h 1024` (or other powers of
+Then run `make && ./squarezoom-random/squarezoom-random -R -w 1024 -h 1024` (or other powers of
 two) to build and run in a window.
 
 ## Controls

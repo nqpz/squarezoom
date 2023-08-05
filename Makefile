@@ -1,2 +1,3 @@
-PROGNAME=squarezoom
-include lib/github.com/diku-dk/lys/common.mk
+.PHONY: all
+all:
+	$(MAKE) -C squarezoom-random

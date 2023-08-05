@@ -1,10 +1,10 @@
-import "lib/github.com/diku-dk/lys/lys"
-import "lib/github.com/diku-dk/cpprandom/random"
+import "../lib/github.com/diku-dk/lys/lys"
+import "../lib/github.com/diku-dk/cpprandom/random"
 
-import "general"
-import "zoomable"
-import "oklab"
-import "hsv"
+import "../general"
+import "../zoomable"
+import "../oklab"
+import "../hsv"
 
 module rnge = xorshift128plus
 type rng = rnge.rng
