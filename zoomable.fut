@@ -57,12 +57,12 @@ module mk_zoomable (zoomable_input: zoomable_input) = {
     let values' = map (.0) values
     let indices' = map (zoomable_input.to_screen_coordinate s.screen_calculations) (map (.1) values)
 
-    let merge (v0: f32) (v1: f32): f32 =
-      if v0 < 0 then v1
-      else if v1 < 0 then v0
-      else (v0 + v1) / 2
-    in reduce_by_index_and_spread_2d s.height s.width merge (-1) indices' values'
-    -- in spread_2d s.height s.width 0 indices' values'
+    -- let merge (v0: f32) (v1: f32): f32 =
+    --   if v0 < 0 then v1
+    --   else if v1 < 0 then v0
+    --   else (v0 + v1) / 2
+    -- in reduce_by_index_and_spread_2d s.height s.width merge (-1) indices' values'
+    in spread_2d s.height s.width 0 indices' values'
 
   def text_content (s: state) = (s.viewport.center.x,
                                  s.viewport.center.y,
