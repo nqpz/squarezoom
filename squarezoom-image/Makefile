@@ -8,7 +8,12 @@ FILES_SQUAREZOOM=../imagefiles/imagefiles_freeimage.c
 FLAGS_SQUAREZOOM=-lfreeimage
 endif
 
-# Copied from common.mk
+
+# All code below is copied from common.mk except for the uses of
+# FILES_SQUAREZOOM and FLAGS_SQUAREZOOM.
+#
+# FIXME: Make a better, more general solution to this.
+
 .PHONY: all run clean
 
 all: $(PROGNAME)
