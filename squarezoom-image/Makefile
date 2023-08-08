@@ -29,8 +29,8 @@ $(PROGNAME):
 	futhark pkg sync
 	@make # The sync might have resulted in a new Makefile.
 else
-$(PROGNAME): $(PROGNAME)_wrapper.o $(PROGNAME)_printf.h font_data.h $(FRONTEND_DIR)/liblys.c $(FRONTEND_DIR)/liblys.h $(SELF_DIR)/shared.c $(SELF_DIR)/shared.h $(FRONTEND_DIR)/main.c $(FILES_SQUAREZOOM)
-	gcc $(FRONTEND_DIR)/liblys.c $(SELF_DIR)/shared.c $(FRONTEND_DIR)/main.c $(FILES_SQUAREZOOM) -I. -I$(SELF_DIR) -DPROGHEADER='"$(PROGNAME)_wrapper.h"' -DPRINTFHEADER='"$(PROGNAME)_printf.h"' -DLYS_TEXT $(PROGNAME)_wrapper.o -o $@ $(CFLAGS) $(LDFLAGS) $(FLAGS_SQUAREZOOM)
+$(PROGNAME): $(PROGNAME)_wrapper.o $(PROGNAME)_printf.h font_data.h $(FRONTEND_DIR)/liblys.c $(FRONTEND_DIR)/liblys.h $(SELF_DIR)/shared.c $(SELF_DIR)/shared.h $(LYS_FRONTEND)/main.c $(FILES_SQUAREZOOM)
+	gcc $(FRONTEND_DIR)/liblys.c $(SELF_DIR)/shared.c $(LYS_FRONTEND)/main.c $(FILES_SQUAREZOOM) -I. -I$(SELF_DIR) -DPROGHEADER='"$(PROGNAME)_wrapper.h"' -DPRINTFHEADER='"$(PROGNAME)_printf.h"' -DLYS_TEXT $(PROGNAME)_wrapper.o -o $@ $(CFLAGS) $(LDFLAGS) $(FLAGS_SQUAREZOOM)
 endif
 
 $(PROGNAME)_printf.h: $(PROGNAME)_wrapper.c
