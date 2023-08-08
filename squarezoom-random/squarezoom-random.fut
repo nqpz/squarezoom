@@ -110,7 +110,7 @@ def expand_to (height: i64) (width: i64) (c: zoomable_input.screen_calculations)
 
   let (r, _) =
     loop blocks = ([init], c.precision)
-    for _i < t32 (f32.log2 (f32.i64 c.precision))
+    for _i < log2 c.precision
     do expand blocks
   in r
 
