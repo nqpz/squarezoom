@@ -35,7 +35,7 @@ Run `make && ./squarezoom-random/squarezoom-random -R -w 1024 -h 1024`
 
 ## `squarezoom-image`
 
-Run `make && ./squarezoom-image/squarezoom-image -R -w 1024 -h 1024`
+Run `make && ./squarezoom-image/squarezoom-image -R image.jpg
 (or other powers of two) to build and run in a window.
 
 To build without the FreeImage dependency, instead run
