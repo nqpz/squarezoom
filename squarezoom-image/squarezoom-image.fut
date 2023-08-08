@@ -76,12 +76,12 @@ def split4_index ((y, x): c): [4]c =
 
 def split4_value (((v, c), t, rng): p): [4]p =
   let t' = f32.abs (f32.sin t) * 0.1
-  let (rng, v0) = dist.rand (0, 1) rng
-  let (rng, v1) = dist.rand (0, 1) rng
-  let (rng, v2) = dist.rand (0, 1) rng
-  let (rng, v3) = dist.rand (0, 1) rng
+  let (rng, v0) = dist.rand (-0.1, 0.1) rng
+  let (rng, v1) = dist.rand (-0.1, 0.1) rng
+  let (rng, v2) = dist.rand (-0.1, 0.1) rng
+  let (rng, v3) = dist.rand (-0.1, 0.1) rng
   let vs = [v0, v1, v2, v3]
-  let vs = map (+ t') vs
+  let vs = map (+ v + t') vs
   let v_avg = reduce_comm (+) 0 vs / 4
   let v_factor = v / v_avg
   let vs = map (* v_factor) vs
