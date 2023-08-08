@@ -1,7 +1,8 @@
-#ifndef IMAGEFILES_FREEIMAGE
-#define IMAGEFILES_FREEIMAGE
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <assert.h>
+#include <FreeImage.h>
 
 static unsigned int wrap_fread(void *buffer, unsigned size, unsigned count, fi_handle handle) {
   return (unsigned) fread(buffer, size, count, (FILE*) handle);
@@ -90,4 +91,22 @@ void freeimage_save(const char* filename, FILE* f, const int32_t* image,
   FreeImage_Unload(dib);
 }
 
-#endif
+bool freeimage_initialized = false;
+
+void ensure_initialized() {
+  if (!freeimage_initialized) {
+    FreeImage_Initialise(false);
+    freeimage_initialized = true;
+  }
+}
+
+uint32_t* image_load(const char* filename, FILE *f, unsigned int *width, unsigned int *height) {
+  ensure_initialized();
+  return (uint32_t*)freeimage_load(filename, f, width, height);
+}
+
+void image_save(const char* filename, FILE* f, const uint32_t* image,
+                unsigned int width, unsigned int height) {
+  ensure_initialized();
+  freeimage_save(filename, f, (int32_t*)image, width, height);
+}

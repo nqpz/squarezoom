@@ -1,12 +1,12 @@
-#ifndef IMAGEFILES_PAM
-#define IMAGEFILES_PAM
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <assert.h>
 
 /* Backup image library: Netpbm PAM graphics format loading and saving without
    alpha channel (subset of actual format). */
 
-int32_t* pam_load(FILE *f, unsigned int *width, unsigned int *height) {
+uint32_t* pam_load(FILE *f, unsigned int *width, unsigned int *height) {
   assert(0 == fscanf(f, "P7\n"));
   int c = fgetc(f);
   if (c == '#') {
@@ -22,7 +22,7 @@ int32_t* pam_load(FILE *f, unsigned int *width, unsigned int *height) {
   assert(0 == fscanf(f, "MAXVAL 255\n"));
   assert(0 == fscanf(f, "TUPLTYPE RGB\n"));
   assert(0 == fscanf(f, "ENDHDR\n"));
-  int32_t* image = (int32_t*) malloc(*width * *height * sizeof(int32_t));
+  uint32_t* image = (uint32_t*) malloc(*width * *height * sizeof(int32_t));
   if (image == NULL) {
     return NULL;
   }
@@ -37,7 +37,7 @@ int32_t* pam_load(FILE *f, unsigned int *width, unsigned int *height) {
   return image;
 }
 
-void pam_save(FILE* f, const int32_t* image,
+void pam_save(FILE* f, const uint32_t* image,
               unsigned int width, unsigned int height) {
   fprintf(f, "P7\n");
   fprintf(f, "WIDTH %u\n", width);
@@ -58,4 +58,14 @@ void pam_save(FILE* f, const int32_t* image,
   }
 }
 
-#endif
+uint32_t* image_load(const char* filename, FILE *f,
+                     unsigned int *width, unsigned int *height) {
+  (void) filename;
+  return pam_load(f, width, height);
+}
+
+void image_save(const char* filename, FILE* f, const uint32_t* image,
+                unsigned int width, unsigned int height) {
+  (void) filename;
+  pam_save(f, image, width, height);
+}

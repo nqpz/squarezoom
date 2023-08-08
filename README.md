@@ -12,8 +12,6 @@ libraries with associated header files.
 
 First run `futhark pkg sync` once.
 
-Then run `make && ./squarezoom-random/squarezoom-random -R -w 1024 -h 1024` (or other powers of
-two) to build and run in a window.
 
 ## Controls
 
@@ -27,3 +25,20 @@ two) to build and run in a window.
   - `o`: View in the Oklab color space.
   - `g`: View as grayscale.
   - `r`: Generate a new world.
+
+
+## `squarezoom-random`
+
+Run `make && ./squarezoom-random/squarezoom-random -R -w 1024 -h 1024`
+(or other powers of two) to build and run in a window.
+
+
+## `squarezoom-image`
+
+Run `make && ./squarezoom-image/squarezoom-image -R -w 1024 -h 1024`
+(or other powers of two) to build and run in a window.
+
+To build without the FreeImage dependency, instead run
+`SQUAREZOOM_NO_FREEIMAGE=1 make`.  This means you will only be able to
+read and write images in the Netpbm PAM format.  You can use
+ImageMagick's `convert` utility to convert from and to this format.
