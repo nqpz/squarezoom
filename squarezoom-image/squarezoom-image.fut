@@ -90,7 +90,22 @@ def split4_value (((v, c), t, rng): p): [4]p =
   let rngs = rnge.split_rng 4 rng
   in zip3 (zip vs cs) ts rngs
 
-def expand_to (height: i64) (width: i64) (c: zoomable_input.screen_calculations) (init: p): []p =
+def create_ps [h][w] (image: [h][w]argb.colour) (time: f32) (rng: rng): [h * w]p =
+  let indices =
+    tabulate_2d h w (\y x -> (y, x))
+    |> flatten
+  let hues =
+    image
+    |> map (map (\c ->
+                   let (r, g, b, _a) = argb.to_rgba c
+                   let lab = linear_srgb_to_oklab {r, g, b}
+                   let lch = to_LCh lab
+                   in lch.h))
+    |> flatten
+  let rngs = rnge.split_rng (h * w) rng
+  in zip3 (zip hues indices) (replicate (h * w) time) rngs
+
+def expand_to (height: i64) (width: i64) (c: zoomable_input.screen_calculations) (inits: []p): []p =
   let expand ((blocks, size): ([]p, i64)): ([]p, i64) =
     let size' = size / 2
 
@@ -109,9 +124,10 @@ def expand_to (height: i64) (width: i64) (c: zoomable_input.screen_calculations)
               |> filter in_bounds
     in (new, size')
 
+  let prec = c.precision / height -- fixme: also handle width
   let (r, _) =
-    loop blocks = ([init], c.precision)
-    for _i < log2 c.precision
+    loop blocks = (inits, prec)
+    for _i < log2 prec
     do expand blocks
   in r
 
@@ -153,7 +169,7 @@ module lys = {
 
   def init (seed: u32) (h: i64) (w: i64) (image: [h][w]argb.colour): state =
     let rng = rnge.rng_from_seed [i32.u32 seed]
-    in zoomable.init h w {time=0, rng, approach=#hsv, image}
+    in zoomable.init h w {time=0, rng, approach=#oklab, image}
 
   def resize (h: i64) (w: i64) (s: state): state =
     zoomable.resize h w s
@@ -166,7 +182,8 @@ module lys = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let values = expand_to s.height s.width s.screen_calculations ((1, (0, 0)), s.base.time, s.base.rng)
+    let inits = create_ps s.base.image s.base.time s.base.rng
+    let values = expand_to s.height s.width s.screen_calculations inits
                  |> map (.0)
                  |> zoomable.to_screen_coordinates s
     let render_with_approach render_pixel = map (map render_pixel) values
