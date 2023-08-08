@@ -16,9 +16,10 @@ type p = ((f32, c), f32, rng)
 type approach = #hsv | #oklab | #grayscale
 
 module zoomable_input = {
-  type state = {time: f32,
-                rng: rng,
-                approach: approach}
+  type~ state = {time: f32,
+                 rng: rng,
+                 approach: approach,
+                 image: [][]argb.colour}
 
   type screen_calculations = {precision: i64,
                               xy_factor_inv: f32,
@@ -152,7 +153,7 @@ module lys = {
 
   def init (seed: u32) (h: i64) (w: i64) (image: [h][w]argb.colour): state =
     let rng = rnge.rng_from_seed [i32.u32 seed]
-    in zoomable.init h w {time=0, rng, approach=#hsv}
+    in zoomable.init h w {time=0, rng, approach=#hsv, image}
 
   def resize (h: i64) (w: i64) (s: state): state =
     zoomable.resize h w s

@@ -13,7 +13,7 @@ type viewport = {zoom: f32,
                  center: vec2_f32.vector}
 
 module type zoomable_input = {
-  type state
+  type~ state
 
   type screen_calculations
 
@@ -26,13 +26,13 @@ module mk_zoomable (zoomable_input: zoomable_input) = {
   type auto_zoom = {enabled: bool,
                     factor: f32}
 
-  type state = {base: zoomable_input.state,
-                width: i64,
-                height: i64,
-                viewport: viewport,
-                auto_zoom: auto_zoom,
-                mouse: {y: i32, x: i32},
-                screen_calculations: zoomable_input.screen_calculations}
+  type~ state = {base: zoomable_input.state,
+                 width: i64,
+                 height: i64,
+                 viewport: viewport,
+                 auto_zoom: auto_zoom,
+                 mouse: {y: i32, x: i32},
+                 screen_calculations: zoomable_input.screen_calculations}
 
   def init (height: i64) (width: i64) (base: zoomable_input.state): state =
     let viewport = {center={x=0, y=0}, zoom=1}
