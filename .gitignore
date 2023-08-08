@@ -1,7 +1,8 @@
 /lib
-/*.c
-/*.o
-/*.h
-/squarezoom_wrapper.fut
-/squarezoom_wrapper.json
-/squarezoom
+*.c
+*.o
+*.h
+*_wrapper.fut
+*_wrapper.json
+/squarezoom-random/squarezoom-random
+/squarezoom-image/squarezoom-image
