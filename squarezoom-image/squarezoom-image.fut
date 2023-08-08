@@ -115,7 +115,7 @@ def expand_to (height: i64) (width: i64) (c: zoomable_input.screen_calculations)
   in r
 
 type text_content = (i32, i32, f32, f32, f32, i32)
-module lys: lys with text_content = text_content = {
+module lys = {
   type~ state = zoomable.state
 
   local def render_pixel_hsv (v: f32): argb.colour =
@@ -150,7 +150,7 @@ module lys: lys with text_content = text_content = {
 
   def grab_mouse = false
 
-  def init (seed: u32) (h: i64) (w: i64): state =
+  def init (seed: u32) (h: i64) (w: i64) (image: [h][w]argb.colour): state =
     let rng = rnge.rng_from_seed [i32.u32 seed]
     in zoomable.init h w {time=0, rng, approach=#hsv}
 

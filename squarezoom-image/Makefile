@@ -49,7 +49,7 @@ $(PROGNAME)_wrapper.o: $(PROGNAME)_wrapper.c
 	futhark $(LYS_BACKEND) --library $<
 
 %_wrapper.fut: $(SELF_DIR)/genlys.fut $(PROG_FUT_DEPS)
-	cat $< | sed 's/"lys"/"$(PROGNAME)"/' > $@
+	cat $< | sed -e 's/"lys"/"$(PROGNAME)"/' -e 's/entry init (seed: u32) (h: i32) (w: i32): state/entry init (seed: u32) (h: i32) (w: i32) (image: [][]u32): state/' -e 's/m.lys.init seed (i64.i32 h) (i64.i32 w)/m.lys.init seed (i64.i32 h) (i64.i32 w) image/' > $@
 
 run: $(PROGNAME)
 	./$(PROGNAME)

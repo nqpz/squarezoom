@@ -99,47 +99,8 @@ void handle_event(struct lys_context *ctx, enum lys_event event) {
   }
 }
 
-void do_bench(struct futhark_context *fut, int height, int width, int n, const char *operation) {
-  struct futhark_opaque_state *state;
-  int64_t start, end;
-  FUT_CHECK(fut, futhark_entry_init(fut, &state, (int32_t) lys_wall_time(), height, width));
-  futhark_context_sync(fut);
-  bool do_step = false, do_render = false;
-
-  if (strstr(operation, "step") != NULL) {
-    do_step = true;
-  }
-
-  if (strstr(operation, "render") != NULL) {
-    do_render = true;
-  }
-
-  start = lys_wall_time();
-  for (int i = 0; i < n; i++) {
-    if (do_step) {
-      struct futhark_opaque_state *new_state;
-      FUT_CHECK(fut, futhark_entry_step(fut, &new_state, 1.0/n, state));
-      futhark_free_opaque_state(fut, state);
-      state = new_state;
-    }
-    if (do_render) {
-      struct futhark_u32_2d *out_arr;
-      FUT_CHECK(fut, futhark_entry_render(fut, &out_arr, state));
-      FUT_CHECK(fut, futhark_free_u32_2d(fut, out_arr));
-    }
-  }
-  futhark_context_sync(fut);
-  end = lys_wall_time();
-
-  printf("Rendered %d frames in %fs (%f FPS)\n",
-         n, ((double)end-start)/1000000,
-         n / (((double)end-start)/1000000));
-
-  FUT_CHECK(fut, futhark_free_opaque_state(fut, state));
-}
-
 void usage(char **argv) {
-  printf("Usage: %s options...\n", argv[0]);
+  printf("Usage: %s options... input-file\n", argv[0]);
   puts("Options:");
   puts("  -?      Print this help and exit.");
   puts("  -w INT  Set the initial width of the window.");
@@ -148,7 +109,6 @@ void usage(char **argv) {
   puts("  -d DEV  Set the computation device.");
   puts("  -r INT  Maximum frames per second.");
   puts("  -i      Select execution device interactively.");
-  puts("  -b <render|step>  Benchmark program.");
 }
 
 int main(int argc, char** argv) {
@@ -156,7 +116,7 @@ int main(int argc, char** argv) {
   bool allow_resize = true;
   char *deviceopt = NULL;
   bool device_interactive = false;
-  char *benchopt = NULL;
+  char* input_image_path;
 
   int c;
   while ( (c = getopt(argc, argv, "w:h:r:Rd:b:i")) != -1) {
@@ -191,15 +151,6 @@ int main(int argc, char** argv) {
     case 'i':
       device_interactive = true;
       break;
-    case 'b':
-      if (strcmp(optarg, "render") == 0 ||
-          strcmp(optarg, "step") == 0) {
-        benchopt = optarg;
-      } else {
-        fprintf(stderr, "Use -b <render|step>\n");
-        return EXIT_FAILURE;
-      }
-      break;
     case '?':
       usage(argv);
       return EXIT_SUCCESS;
@@ -210,6 +161,15 @@ int main(int argc, char** argv) {
     }
   }
 
+  if (optind < argc) {
+    input_image_path = argv[optind];
+  } else {
+    fprintf(stderr, "error: missing output image\n\n");
+    usage(argv);
+    return EXIT_FAILURE;
+  }
+
+  optind++;
   if (optind < argc) {
     fprintf(stderr, "Excess non-options: ");
     while (optind < argc)
@@ -248,15 +208,28 @@ int main(int argc, char** argv) {
   ctx.font = open_font(ctx.font_size);
   SDL_ASSERT(ctx.font != NULL);
 
-  if (benchopt != NULL) {
-    do_bench(ctx.fut, height, width, max_fps, benchopt);
+  FILE *input_image;
+  int input_image_width, input_image_height;
+  if (strcmp(input_image_path, "-") == 0) {
+    input_image = fdopen(0, "r");
   } else {
-    int32_t seed = (int32_t) lys_wall_time();
-    futhark_entry_init(ctx.fut, &ctx.state,
-                       seed, ctx.height, ctx.width);
-    lys_run_sdl(&ctx);
-    free(ctx.data);
+    input_image = fopen(input_image_path, "r");
   }
+  assert(input_image != NULL);
+  uint32_t* input_image_data = image_load(input_image_path, input_image,
+                                          (unsigned int*) &input_image_width,
+                                          (unsigned int*) &input_image_height);
+  assert(input_image_data != NULL);
+  fprintf(stderr, "Image dimensions: %dx%d\n", input_image_width, input_image_height);
+  assert(fclose(input_image) != EOF);
+  struct futhark_u32_2d *input_image_fut = futhark_new_u32_2d(ctx.fut, input_image_data, height, width);
+  free(input_image_data);
+
+  int32_t seed = (int32_t) lys_wall_time();
+  futhark_entry_init(ctx.fut, &ctx.state,
+                     seed, ctx.height, ctx.width, input_image_fut);
+  lys_run_sdl(&ctx);
+  free(ctx.data);
 
   TTF_CloseFont(ctx.font);
 
