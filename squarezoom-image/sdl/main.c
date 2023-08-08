@@ -2,6 +2,8 @@
 #include "font_data.h"
 #include PRINTFHEADER
 
+#include "../../imagefiles/imagefiles.h"
+
 #define _XOPEN_SOURCE
 #include <unistd.h>
 #include <getopt.h>
