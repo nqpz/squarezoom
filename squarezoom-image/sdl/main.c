@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#define INITIAL_WIDTH 800
-#define INITIAL_HEIGHT 600
+#define INITIAL_WIDTH 1024
+#define INITIAL_HEIGHT 1024
 
 void loop_start(struct lys_context *ctx, struct lys_text *text) {
   prepare_text(ctx->fut, text);
