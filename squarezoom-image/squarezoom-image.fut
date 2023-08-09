@@ -58,8 +58,20 @@ def create_ps [h][w] (image: [h][w]argb.colour) (time: f32) (rng: rng): [h * w]p
   let rngs = rnge.split_rng (h * w) rng
   in zip3 (zip hues indices) (replicate (h * w) time) rngs
 
+module type lys_with_input_image = {
+  include lys_core
+
+  val init: (seed: u32) -> (h: i64) -> (w: i64) -> (image: [h][w]argb.colour) -> state
+
+  val grab_mouse: bool
+  val text_format: () -> string []
+  type text_content
+  val text_content: (fps: f32) -> state -> text_content
+  val text_colour: state -> argb.colour
+}
+
 type text_content = (i32, i32, f32, f32, f32, i32)
-module lys = {
+module lys: lys_with_input_image with text_content = text_content = {
   type~ state = zoomable.state
 
   local def render_pixel_hsv (v: f32): argb.colour =
