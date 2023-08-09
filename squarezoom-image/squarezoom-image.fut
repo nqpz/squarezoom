@@ -6,89 +6,42 @@ import "../zoomable"
 import "../oklab"
 import "../hsv"
 
-module rnge = xorshift128plus
-type rng = rnge.rng
-module dist = uniform_real_distribution f32 rnge
+import "../squarezoom"
 
-type c = (i64, i64)
-type p = ((f32, c), f32, rng)
-
-type approach = #hsv | #oklab | #grayscale
-
-module zoomable_input = {
+module zoomable_input = mk_zoomable_input {
   type~ state = {time: f32,
                  rng: rng,
                  approach: approach,
                  image: [][]argb.colour}
-
-  type screen_calculations = {precision: i64,
-                              xy_factor_inv: f32,
-                              center_offset: vec2_f32.vector,
-                              zoom_factor: f32,
-                              offset_viewport_scaled: vec2_f32.vector}
-
-  def make_screen_calculations (height: i64) (width: i64) (viewport: viewport): screen_calculations =
-    let precision_scale = 2**i64.max 0 (i64.f32 (f32.ceil (f32.log2 viewport.zoom)))
-
-    let size = i64.min height width
-
-    let precision = size * precision_scale
-
-    let xy_factor = f32.i64 size
-    let xy_factor_inv = 1 / xy_factor
-
-    let center_offset = vec2_f32.dup (f32.i64 precision / xy_factor / 2)
-
-    let zoom_factor = xy_factor * viewport.zoom / f32.i64 precision_scale
-
-    let offset = {y=f32.i64 (i64.max 0 (width - height)) / xy_factor,
-                  x=f32.i64 (i64.max 0 (height - width)) / xy_factor}
-    let offset = vec2_f32.(scale 0.5 offset + dup 0.5)
-    let viewport_center_scaled = vec2_f32.scale viewport.zoom viewport.center
-    let offset_viewport_scaled = vec2_f32.(scale xy_factor (offset - viewport_center_scaled))
-
-    in {precision,
-        xy_factor_inv,
-        center_offset,
-        zoom_factor,
-        offset_viewport_scaled}
-
-  local def to_vector ((y, x): (i64, i64)): vec2_f32.vector =
-    {y=f32.i64 y, x=f32.i64 x}
-
-  local def to_tuple ({y, x}: vec2_f32.vector): (i64, i64) =
-    (i64.f32 y, i64.f32 x)
-
-  def to_screen_coordinate (c: screen_calculations): (i64, i64) -> (i64, i64) =
-    to_vector
-    >-> vec2_f32.scale c.xy_factor_inv
-    >-> (vec2_f32.- c.center_offset)
-    >-> vec2_f32.scale c.zoom_factor
-    >-> (vec2_f32.+ c.offset_viewport_scaled)
-    >-> to_tuple
 }
 
 module zoomable = mk_zoomable zoomable_input
 
-def split4_index ((y, x): c): [4]c =
-  let (y, x) = (y * 2, x * 2)
-  in [(y, x), (y, x + 1), (y + 1, x), (y + 1, x + 1)]
+open mk_auxiliary_functions zoomable_input {
+  def split4_value (((v, c), t, rng): p): [4]p =
+    let t' = f32.abs (f32.sin t) * 0.1
+    let (rng, v0) = dist.rand (-0.1, 0.1) rng
+    let (rng, v1) = dist.rand (-0.1, 0.1) rng
+    let (rng, v2) = dist.rand (-0.1, 0.1) rng
+    let (rng, v3) = dist.rand (-0.1, 0.1) rng
+    let vs = [v0, v1, v2, v3]
+    let vs = map (+ v + t') vs
+    let v_avg = reduce_comm (+) 0 vs / 4
+    let v_factor = v / v_avg
+    let vs = map (* v_factor) vs
+    let cs = split4_index c
+    let ts = replicate 4 (t * 0.9)
+    let rngs = rnge.split_rng 4 rng
+    in zip3 (zip vs cs) ts rngs
+}
 
-def split4_value (((v, c), t, rng): p): [4]p =
-  let t' = f32.abs (f32.sin t) * 0.1
-  let (rng, v0) = dist.rand (-0.1, 0.1) rng
-  let (rng, v1) = dist.rand (-0.1, 0.1) rng
-  let (rng, v2) = dist.rand (-0.1, 0.1) rng
-  let (rng, v3) = dist.rand (-0.1, 0.1) rng
-  let vs = [v0, v1, v2, v3]
-  let vs = map (+ v + t') vs
-  let v_avg = reduce_comm (+) 0 vs / 4
-  let v_factor = v / v_avg
-  let vs = map (* v_factor) vs
-  let cs = split4_index c
-  let ts = replicate 4 (t * 0.9)
-  let rngs = rnge.split_rng 4 rng
-  in zip3 (zip vs cs) ts rngs
+def expand_to (height: i64) (width: i64) (c: zoomable_input.screen_calculations) (inits: []p): []p =
+  let prec = c.precision / height -- fixme: also handle width
+  let (r, _) =
+    loop t = (inits, prec)
+    for _i < log2 prec
+    do expand height width c t
+  in r
 
 def create_ps [h][w] (image: [h][w]argb.colour) (time: f32) (rng: rng): [h * w]p =
   let indices =
@@ -104,32 +57,6 @@ def create_ps [h][w] (image: [h][w]argb.colour) (time: f32) (rng: rng): [h * w]p
     |> flatten
   let rngs = rnge.split_rng (h * w) rng
   in zip3 (zip hues indices) (replicate (h * w) time) rngs
-
-def expand_to (height: i64) (width: i64) (c: zoomable_input.screen_calculations) (inits: []p): []p =
-  let expand ((blocks, size): ([]p, i64)): ([]p, i64) =
-    let size' = size / 2
-
-    let rect_outside_window (y_ul, x_ul) (y_lr, x_lr) =
-      y_lr < 0 || y_ul >= height || x_lr < 0 || x_ul >= width
-
-    let in_bounds (((_, (y0, x0)), _, _): p): bool =
-      let (y0, x0) = (y0 * size', x0 * size')
-      let sc = zoomable_input.to_screen_coordinate c
-      in !rect_outside_window
-          (sc (y0, x0))
-          (sc (y0 + size', x0 + size'))
-
-    let new = map split4_value blocks
-              |> flatten
-              |> filter in_bounds
-    in (new, size')
-
-  let prec = c.precision / height -- fixme: also handle width
-  let (r, _) =
-    loop blocks = (inits, prec)
-    for _i < log2 prec
-    do expand blocks
-  in r
 
 type text_content = (i32, i32, f32, f32, f32, i32)
 module lys = {
