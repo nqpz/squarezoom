@@ -92,7 +92,8 @@ module lys: lys with text_content = text_content = {
        case _ -> s
 
   def render (s: state): [][]argb.colour =
-    let values = expand_to s.height s.width s.screen_calculations ((1, (0, 0)), s.base.time, s.base.rng)
+    let init = ((1, (0, 0)), s.base.time, s.base.rng)
+    let values = expand_to s.height s.width s.screen_calculations init
                  |> map (.0)
                  |> zoomable.to_screen_coordinates s
     let render_with_approach render_pixel = map (map render_pixel) values
